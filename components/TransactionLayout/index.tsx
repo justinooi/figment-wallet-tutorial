@@ -2,7 +2,7 @@
 import React, { useState, ReactElement } from "react";
 import { message } from "antd";
 import { useGlobalState } from "../../context";
-import { LAMPORTS_PER_SOL } from "@solana/web3.js";
+import { LAMPORTS_PER_SOL, Connection, clusterApiUrl, SystemProgram, Transaction, sendAndConfirmTransaction } from "@solana/web3.js";
 const converter = require("number-to-words");
 import { LoadingOutlined } from "@ant-design/icons";
 import { refreshBalance } from "../../utils";
@@ -18,6 +18,7 @@ import {
   AmountText,
   RatioText,
 } from "../../styles/StyledComponents.styles";
+import { PublicKey } from "@solana/web3.js";
 
 type FormT = {
   from: string;
@@ -62,31 +63,40 @@ const TransactionModal = (): ReactElement => {
       // Documentation References:
       //   https://solana-labs.github.io/solana-web3.js/classes/Connection.html
       //   https://solana-labs.github.io/solana-web3.js/modules.html#clusterApiUrl
-      console.log("Sign and Send not yet implemented!");
-      const connection = "";
       setTransactionSig("");
+
+      const connection = new Connection(clusterApiUrl("devnet"), "confirmed");
       // (c) leverage the SystemProgram class to create transfer instructions that include your account's public key, the public key from your sender field in the form, and the amount from the form
       // Documentation Reference:
       //   https://solana-labs.github.io/solana-web3.js/classes/SystemProgram.html
       //   https://solana-labs.github.io/solana-web3.js/classes/SystemProgram.html#transfer
-      const instructions = {};
+      const instructions = SystemProgram.transfer({
+        fromPubkey: account.publicKey,
+        toPubkey: new PublicKey(form.to),
+        lamports: form.amount,
+      });
 
       // (d) instantiate a transaction object and add the instructions
       // Documentation Reference:
       //   https://solana-labs.github.io/solana-web3.js/classes/Transaction.html
       //   https://solana-labs.github.io/solana-web3.js/classes/Transaction.html#add
-      const transaction = {};
+      const transaction = new Transaction().add(instructions);
 
       // (e) use your account to create a signers interface
       // Documentation Reference:
       //   https://solana-labs.github.io/solana-web3.js/interfaces/Signer.html
       //   note: signers is an array with a single item - an object with two properties
-      const signers = [{}];
+      const signers = [
+        {
+          publicKey: account.publicKey,
+          secretKey: account.secretKey,
+        },
+      ];
 
       setSending(true);
       // (f) send the transaction and await its confirmation
       // Documentation Reference: https://solana-labs.github.io/solana-web3.js/modules.html#sendAndConfirmTransaction
-      const confirmation = "";
+      const confirmation = await sendAndConfirmTransaction(connection, transaction, signers);
       setTransactionSig(confirmation);
       setSending(false);
 
@@ -97,11 +107,8 @@ const TransactionModal = (): ReactElement => {
       }
       // (g) You can now delete the console.log statement since the function is implemented!
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown Error";
-      message.error(
-        `Transaction failed, please check your inputs: ${errorMessage}`
-      );
+      const errorMessage = error instanceof Error ? error.message : "Unknown Error";
+      message.error(`Transaction failed, please check your inputs: ${errorMessage}`);
       setSending(false);
     }
   };
@@ -109,32 +116,19 @@ const TransactionModal = (): ReactElement => {
   return (
     <>
       <CheckContainer>
-        <CheckImage src="/check.jpeg" alt="Check" />
+        <CheckImage src='/check.jpeg' alt='Check' />
         <CheckFrom>{`FROM: ${account?.publicKey}`}</CheckFrom>
 
         {transactionSig && (
-          <Processed
-            href={`https://explorer.solana.com/tx/${transactionSig}?cluster=devnet`}
-            target="_blank"
-          >
+          <Processed href={`https://explorer.solana.com/tx/${transactionSig}?cluster=devnet`} target='_blank'>
             Processed - Review on Solana Block Explorer
           </Processed>
         )}
 
-        <CheckDate>
-          {new Date().toString().split(" ").slice(1, 4).join(" ")}
-        </CheckDate>
-        <RecipientInput
-          value={form.to}
-          onChange={(e) => onFieldChange("to", e.target.value)}
-        />
-        <AmountInput
-          value={form.amount}
-          onChange={(e) => onFieldChange("amount", e.target.value)}
-        />
-        <AmountText>
-          {form.amount <= 0 ? "" : converter.toWords(form.amount)}
-        </AmountText>
+        <CheckDate>{new Date().toString().split(" ").slice(1, 4).join(" ")}</CheckDate>
+        <RecipientInput value={form.to} onChange={(e) => onFieldChange("to", e.target.value)} />
+        <AmountInput value={form.amount} onChange={(e) => onFieldChange("amount", e.target.value)} />
+        <AmountText>{form.amount <= 0 ? "" : converter.toWords(form.amount)}</AmountText>
         {sending ? (
           <LoadingOutlined
             style={{
@@ -146,16 +140,7 @@ const TransactionModal = (): ReactElement => {
             spin
           />
         ) : (
-          <SignatureInput
-            onClick={transfer}
-            disabled={
-              !balance ||
-              form.amount / LAMPORTS_PER_SOL > balance ||
-              !form.to ||
-              form.amount == 0
-            }
-            type="primary"
-          >
+          <SignatureInput onClick={transfer} disabled={!balance || form.amount / LAMPORTS_PER_SOL > balance || !form.to || form.amount == 0} type='primary'>
             Sign and Send
           </SignatureInput>
         )}
