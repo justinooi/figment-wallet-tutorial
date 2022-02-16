@@ -8,7 +8,11 @@ import { useRouter } from "next/router";
 
 // Import Bip39 to generate a phrase and convert it to a seed:
 
+import * as Bip39 from "bip39";
+
 // Import the Keypair class from Solana's web3.js library:
+
+import { Keypair } from "@solana/web3.js";
 
 const Phrase: NextPage = () => {
   const [loading, setLoading] = useState<boolean>(false);
@@ -22,13 +26,14 @@ const Phrase: NextPage = () => {
     // (a) review the import guidance on lines 9 and 11
     // (b) generate a mnemonic phrase by importing Bip39 and then implementing the appropriate method on the imported Bip39 instance
     // Documentation Reference: https://github.com/bitcoinjs/bip39
-    const generatedMnemonic = "";
+    const generatedMnemonic = Bip39.generateMnemonic();
 
     // This line saves the mnemonic phrase to context state so we can display it for the wallet user to copy
     setMnemonic(generatedMnemonic);
 
     // (c) convert the mnemonic to seed bytes and make sure it's 32-bytes (Hint: console log the seed to see how many bytes you have vs how many you need)
     // Documentation Reference: https://github.com/bitcoinjs/bip39
+    console.log(Bip39.mnemonicToSeedSync(generatedMnemonic));
     const seed = new Uint8Array();
 
     // (d) use the seed to generate a new account (i.e. a new keypair)
@@ -61,23 +66,17 @@ const Phrase: NextPage = () => {
     <>
       <h1 className={"title"}>Secret Recovery Phrase</h1>
 
-      <p>
-        This recovery phrase is generated with your private keys and can be used
-        to recover your account.
-      </p>
+      <p>This recovery phrase is generated with your private keys and can be used to recover your account.</p>
 
-      <Alert message={warning} type="warning" />
+      <Alert message={warning} type='warning' />
 
-      <p>
-        Once you have stored this phrase somewhere safe, click finish to go to
-        your wallet.
-      </p>
+      <p>Once you have stored this phrase somewhere safe, click finish to go to your wallet.</p>
 
       <PhraseBox mnemonic={mnemonic}></PhraseBox>
 
       {!loading && (
         <Popconfirm
-          title="Did you copy the phrase?"
+          title='Did you copy the phrase?'
           visible={visible}
           onConfirm={handleOk}
           okButtonProps={{ loading: loading }}
@@ -85,7 +84,7 @@ const Phrase: NextPage = () => {
           cancelText={"No"}
           okText={"Yes"}
         >
-          <Button type="primary" onClick={showPopconfirm}>
+          <Button type='primary' onClick={showPopconfirm}>
             Finish
           </Button>
         </Popconfirm>
